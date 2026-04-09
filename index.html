@@ -199,16 +199,11 @@ a{color:var(--accent);text-decoration:none}
       <span class="panel-title">Weekly PxT audit</span>
       <button class="xbtn" onclick="closeAudit()">×</button>
     </div>
-    <p style="font-size:12px;color:var(--muted);line-height:1.6">Claude scans Slack for PxT updates from the past 7 days, sends you a digest DM, and sends targeted DMs to team members following features that had significant activity. Just two fields — both permanent, never expire.</p>
-    <div class="crow">
-      <label class="clabel">Anthropic API key</label>
-      <input class="cinput" id="ant-key" type="password" placeholder="sk-ant-..." oninput="saveConfig()">
-      <span class="chint">Saved once, stored in your browser only. Get yours at <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com →</a></span>
-    </div>
+    <p style="font-size:12px;color:var(--muted);line-height:1.6">Claude scans Slack for PxT updates from the past 7 days, sends you a digest DM, and sends targeted DMs to team members following features that had significant activity. One field — permanent, never expires.</p>
     <div class="crow">
       <label class="clabel">Slack bot token</label>
       <input class="cinput" id="slack-token" type="password" placeholder="xoxb-..." oninput="saveConfig()">
-      <span class="chint">Used to read PxT updates AND send you DMs. Needs <code style="font-size:10px;background:var(--surface);padding:1px 4px;border-radius:3px">search:read</code> + <code style="font-size:10px;background:var(--surface);padding:1px 4px;border-radius:3px">chat:write</code> scopes. Never expires.</span>
+      <span class="chint">Paste once, saved forever. Needs <code style="font-size:10px;background:var(--surface);padding:1px 4px;border-radius:3px">search:read</code> + <code style="font-size:10px;background:var(--surface);padding:1px 4px;border-radius:3px">chat:write</code> scopes. Never expires.</span>
     </div>
     <div class="fsummary" id="followers-summary">Loading...</div>
     <button class="run-btn" id="run-btn" onclick="runAudit()">Run audit now</button>
@@ -418,15 +413,11 @@ function removeFollower(feat,slackId){
 
 /* CONFIG */
 function saveConfig(){
-  const k=document.getElementById('ant-key').value;
   const t=document.getElementById('slack-token').value;
-  if(k)localStorage.setItem('pxt_ant_key',k);
   if(t)localStorage.setItem('pxt_slack_token',t);
 }
 function loadConfig(){
-  const k=localStorage.getItem('pxt_ant_key')||'';
   const t=localStorage.getItem('pxt_slack_token')||'';
-  if(k)document.getElementById('ant-key').value=k;
   if(t)document.getElementById('slack-token').value=t;
 }
 
@@ -459,10 +450,10 @@ async function sendSlackDM(slackToken, userId, text){
   return d;
 }
 
-async function claudeCall(antKey,prompt,maxTokens=1000){
+async function claudeCall(prompt,maxTokens=1000){
   const r=await fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':antKey,'anthropic-version':'2023-06-01'},
+    headers:{'Content-Type':'application/json'},
     body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})
   });
   const d=await r.json();
@@ -473,11 +464,108 @@ async function claudeCall(antKey,prompt,maxTokens=1000){
 const MY_SLACK_ID='U0872H8FS9W';
 
 async function runAudit(){
-  const antKey=document.getElementById('ant-key').value.trim();
   const slackToken=document.getElementById('slack-token').value.trim();
-  if(!antKey){alert('Please enter your Anthropic API key.');return;}
-  if(!slackToken){alert('Please enter your Slack bot token.');return;}
+  if(!slackToken){alert('Please paste your Slack bot token.');return;}
   saveConfig();
+  document.getElementById('audit-log').innerHTML='';
+  document.getElementById('run-btn').disabled=true;
+  log('Starting PxT weekly audit...','info');log('');
+
+  try{
+    // Step 1: Search Slack
+    log('① Searching Slack for PxT updates (last 7 days)...','info');
+    let slackCtx='';
+    const ago=Math.floor((Date.now()-7*24*60*60*1000)/1000);
+    try{
+      const sr=await fetch('https://slack.com/api/search.messages?query=PxT+product+feature+shipped+released+launched+progress&count=20&sort=timestamp&sort_dir=desc',{
+        headers:{'Authorization':`Bearer ${slackToken}`}
+      });
+      const sd=await sr.json();
+      if(sd.ok&&sd.messages?.matches?.length){
+        const recent=sd.messages.matches.filter(m=>parseInt(m.ts)>ago);
+        slackCtx=recent.map(m=>`[${m.channel?.name||'?'}] ${(m.text||'').slice(0,300)}`).join('\n\n');
+        log(`   Found ${recent.length} relevant messages.`);
+      } else {
+        log('   No recent messages found — running from tracker data only.');
+      }
+    }catch(e){log('   Could not reach Slack API — running from tracker data only.','err');}
+
+    const snapshot=DATA.map(d=>`[${d.st}] ${d.s} / ${d.n} | Accounts: ${d.accounts} | Start: ${d.start} | Target: ${d.target} | ${d.note}`).join('\n');
+    const dateStr=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+    // Step 2: Generate digest
+    log('');log('② Generating your weekly digest...','info');
+    const digest=await claudeCall(`You are a product tracker for PxT (Powered by TodayTix).
+
+Tracker state:
+${snapshot}
+
+${slackCtx?`Recent Slack (7 days):\n${slackCtx}`:''}
+
+Write a concise weekly digest. Format:
+- 1-sentence summary of the week
+- 🟢 Newly launched — moved to Launched this week
+- 🟡 Significant updates — notable progress or context changes
+- ⚠️ Watch list — delayed, blocked, or needs attention
+- 📌 Coming up — expected to ship soon
+- One-liner on overall momentum
+
+Specific. Cite feature names and accounts. Plain text with emojis. Tight and personal — this is a Slack DM, not a report.`);
+    log('   Digest generated.','ok');
+
+    // Step 3: DM yourself
+    log('');log('③ Sending you a Slack DM...','info');
+    await sendSlackDM(slackToken, MY_SLACK_ID, `*PxT weekly product digest — ${dateStr}*\n\n${digest}`);
+    log('   DM sent to you ✓','ok');
+
+    // Step 4: Follower targeted DMs
+    const followed=Object.entries(followers).filter(([,fs])=>fs.length>0);
+    if(followed.length){
+      log('');log(`④ Checking ${followed.length} followed feature(s) for significant updates...`,'info');
+      for(const [featName,fList] of followed){
+        const fd=DATA.find(d=>d.n===featName);
+        if(!fd)continue;
+
+        const update=await claudeCall(`PxT product tracker assistant.
+
+Feature: "${featName}"
+Status: ${fd.st} | Accounts: ${fd.accounts} | Start: ${fd.start} | Target: ${fd.target}
+Notes: ${fd.note}
+
+${slackCtx?`Recent Slack (7 days):\n${slackCtx}`:''}
+
+Did "${featName}" have a SIGNIFICANT update this week (status change, major milestone, launch, blocker, delay)?
+If YES: write a short 2–4 sentence Slack DM update that a follower would want to read. Be specific and factual. Plain text with emojis, no formatting.
+If NO significant update: respond with exactly the word SKIP and nothing else.`,400);
+
+        if(update.trim()==='SKIP'){
+          log(`   "${featName}" — no significant update, skipping.`);
+          continue;
+        }
+        log(`   "${featName}" — update found! DMing ${fList.length} follower(s)...`,'ok');
+        for(const f of fList){
+          const sid=f.slackId||f.email;
+          if(!sid||!sid.match(/^U/i)){
+            log(`     → ${f.name}: no valid Slack ID, skipping.`,'err');
+            continue;
+          }
+          try{
+            await sendSlackDM(slackToken, sid,
+              `*PxT feature update: ${featName}*\n\nHi ${f.name} — you're following this feature on the PxT tracker.\n\n${update}`
+            );
+            log(`     → ${f.name} (${sid}) ✓`,'ok');
+          }catch(e){log(`     → ${f.name} failed: ${e.message}`,'err');}
+        }
+      }
+    } else {
+      log('');log('④ No followers to notify.','info');
+    }
+
+    log('');log('────────────────────────────────────');
+    log('Your digest:','info');log('');log(digest);log('');log('✓ Audit complete.','ok');
+  }catch(err){log('');log(`✗ Error: ${err.message}`,'err');}
+  document.getElementById('run-btn').disabled=false;
+}
   document.getElementById('audit-log').innerHTML='';
   document.getElementById('run-btn').disabled=true;
   log('Starting PxT weekly audit...','info');log('');
