@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PxT Product Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0e0e0f;--surface:#161618;--surface2:#1e1e21;
+  --border:rgba(255,255,255,0.07);--border-bright:rgba(255,255,255,0.14);
+  --text:#f0ede8;--muted:#888;--dim:#555;
+  --accent:#c8f060;--amber:#f0b840;--blue:#60a8f0;--red:#f07060;--coral:#f09060;
+  --r:6px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;line-height:1.6}
+a{color:var(--accent);text-decoration:none}
+
+.header{border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;gap:14px;position:sticky;top:0;background:rgba(14,14,15,0.93);backdrop-filter:blur(14px);z-index:100}
+.logo{font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace}
+.header-title{font-size:14px;font-weight:500;color:var(--muted)}
+.header-spacer{flex:1}
+.updated-tag{font-family:'DM Mono',monospace;font-size:11px;color:var(--dim);background:var(--surface);border:1px solid var(--border);padding:4px 10px;border-radius:20px}
+.hdr-btn{font-family:'Syne',sans-serif;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border:none;padding:8px 16px;border-radius:var(--r);cursor:pointer;display:flex;align-items:center;gap:6px;transition:opacity .15s,transform .1s;white-space:nowrap}
+.hdr-btn:hover{opacity:.88;transform:translateY(-1px)}
+.hdr-btn:active{transform:scale(.97)}
+.hdr-btn.primary{background:var(--accent);color:#0e0e0f}
+.hdr-btn.secondary{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+.hdr-btn.secondary:hover{color:var(--text)}
+.hdr-btn svg{width:14px;height:14px;flex-shrink:0}
+
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
+.stat-cell{background:var(--bg);padding:18px 32px;display:flex;flex-direction:column;gap:4px}
+.stat-n{font-size:30px;font-weight:700;line-height:1}
+.stat-n.green{color:var(--accent)}.stat-n.amber{color:var(--amber)}.stat-n.blue{color:var(--blue)}.stat-n.red{color:var(--red)}
+.stat-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+.controls{padding:16px 32px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--border)}
+.search-wrap{flex:1;min-width:200px;position:relative}
+.search-wrap svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--dim)}
+.search-wrap input{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;padding:8px 12px 8px 34px;border-radius:var(--r);outline:none;transition:border-color .15s}
+.search-wrap input:focus{border-color:var(--border-bright)}
+.search-wrap input::placeholder{color:var(--dim)}
+.filters{display:flex;gap:6px;flex-wrap:wrap}
+.pill{font-family:'DM Mono',monospace;font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .12s;white-space:nowrap}
+.pill:hover{border-color:var(--border-bright);color:var(--text)}
+.pill.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+
+.main{padding:0 32px 100px}
+.section-head{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);padding:26px 0 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.section-head .cnt{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2px 8px;font-size:10px}
+.col-heads{display:grid;grid-template-columns:minmax(0,1.9fr) 115px minmax(0,1.2fr) 92px 105px 44px;gap:12px;padding:10px 8px 6px;border-bottom:1px solid var(--border)}
+.col-head{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.row{display:grid;grid-template-columns:minmax(0,1.9fr) 115px minmax(0,1.2fr) 92px 105px 44px;gap:12px;align-items:start;padding:13px 8px;border-bottom:1px solid var(--border);transition:background .1s;border-radius:var(--r)}
+.row:hover{background:var(--surface2)}
+.feat-name{font-size:13px;font-weight:500;color:var(--text)}
+.feat-note{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.5}
+.feat-acct{font-family:'DM Mono',monospace;font-size:10px;color:var(--blue)}
+.badge{display:inline-flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:10px;font-weight:500;padding:3px 8px;border-radius:20px;white-space:nowrap}
+.b-launched{background:rgba(200,240,96,.1);color:#a8d040;border:1px solid rgba(200,240,96,.2)}
+.b-progress{background:rgba(240,184,64,.1);color:#e0a030;border:1px solid rgba(240,184,64,.2)}
+.b-review{background:rgba(96,168,240,.1);color:#60a8f0;border:1px solid rgba(96,168,240,.2)}
+.b-hold{background:rgba(240,144,96,.1);color:#e08050;border:1px solid rgba(240,144,96,.2)}
+.b-notyet{background:rgba(240,112,96,.1);color:#e07060;border:1px solid rgba(240,112,96,.2)}
+.dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.d-launched{background:var(--accent)}.d-progress{background:var(--amber)}.d-review{background:var(--blue)}.d-hold{background:var(--coral)}.d-notyet{background:var(--red)}
+.dates-cell{display:flex;flex-direction:column;gap:3px}
+.date-pair{font-family:'DM Mono',monospace;font-size:10px;line-height:1.6}
+.date-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.04em}
+.date-val{color:var(--muted)}
+.follow-col{display:flex;flex-direction:column;align-items:center;gap:4px;padding-top:2px}
+.follow-btn{width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;color:var(--dim)}
+.follow-btn:hover{border-color:rgba(200,240,96,.5);color:var(--accent);background:rgba(200,240,96,.07)}
+.follow-btn svg{width:13px;height:13px;pointer-events:none}
+.follow-count{font-family:'DM Mono',monospace;font-size:9px;color:var(--accent)}
+.empty{text-align:center;padding:60px 0;font-family:'DM Mono',monospace;font-size:12px;color:var(--dim)}
+
+/* MODALS */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;align-items:center;justify-content:center;padding:24px}
+.overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border-bright);border-radius:14px;width:100%;max-width:480px;padding:28px;display:flex;flex-direction:column;gap:16px}
+.modal.wide{max-width:600px;max-height:82vh;overflow-y:auto}
+.modal-hdr{display:flex;align-items:center;gap:10px}
+.modal-title{font-size:15px;font-weight:600}
+.modal-sub{font-size:12px;color:var(--muted);line-height:1.6}
+.modal-feat-tag{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);background:rgba(200,240,96,.07);border:1px solid rgba(200,240,96,.15);border-radius:var(--r);padding:8px 12px}
+.mrow{display:flex;flex-direction:column;gap:5px}
+.mlabel{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.minput{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;padding:10px 13px;border-radius:var(--r);outline:none;width:100%;transition:border-color .15s}
+.minput:focus{border-color:var(--accent)}
+.mhint{font-size:11px;color:var(--dim)}
+.mactions{display:flex;gap:10px;margin-top:4px}
+.mbtn{font-family:'Syne',sans-serif;font-size:12px;font-weight:600;padding:10px 20px;border-radius:var(--r);cursor:pointer;border:none;transition:opacity .15s}
+.mbtn.confirm{background:var(--accent);color:#0e0e0f}
+.mbtn.confirm:hover{opacity:.88}
+.mbtn.cancel{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+.mbtn.cancel:hover{color:var(--text)}
+.xbtn{margin-left:auto;background:var(--surface2);border:1px solid var(--border);color:var(--muted);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.xbtn:hover{color:var(--text)}
+
+/* AUDIT PANEL */
+.audit-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:flex-end;justify-content:center}
+.audit-overlay.open{display:flex}
+.audit-panel{background:var(--surface);border:1px solid var(--border-bright);border-radius:16px 16px 0 0;width:100%;max-width:760px;max-height:84vh;overflow-y:auto;padding:32px;display:flex;flex-direction:column;gap:18px}
+.panel-hdr{display:flex;align-items:center;gap:12px}
+.panel-title{font-size:16px;font-weight:600}
+.crow{display:flex;flex-direction:column;gap:5px}
+.clabel{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.cinput{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;padding:10px 13px;border-radius:var(--r);outline:none;width:100%;transition:border-color .15s}
+.cinput:focus{border-color:var(--accent)}
+.chint{font-size:11px;color:var(--dim)}
+.run-btn{font-family:'Syne',sans-serif;font-size:13px;font-weight:600;background:var(--accent);color:#0e0e0f;border:none;padding:12px 24px;border-radius:var(--r);cursor:pointer;align-self:flex-start}
+.run-btn:hover{opacity:.88}
+.run-btn:disabled{opacity:.4;cursor:not-allowed}
+.log{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:16px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);line-height:1.85;min-height:120px;white-space:pre-wrap;word-break:break-word}
+.log .ok{color:var(--accent)}.log .err{color:var(--red)}.log .info{color:var(--blue)}
+.fsummary{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:13px 16px;font-size:12px;color:var(--muted);line-height:1.7}
+.fsummary strong{color:var(--text);font-weight:500}
+
+@media(max-width:860px){
+  .col-heads,.row{grid-template-columns:minmax(0,1fr) 110px 44px}
+  .col-head:nth-child(n+3):not(:last-child),.row>*:nth-child(n+3):not(:last-child){display:none}
+  .header,.controls,.main{padding-left:16px;padding-right:16px}
+  .stats-bar{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <span class="logo">PxT</span>
+  <span class="header-title">Product tracker</span>
+  <div class="header-spacer"></div>
+  <span class="updated-tag">Apr 13, 2026</span>
+  <button class="hdr-btn secondary" onclick="showFollowers()">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0zm-9 9a5 5 0 0 1 10 0"/><path d="M13 5a2 2 0 1 1 0-4"/><path d="M13 5c1.1 0 2 .9 2 2a2 2 0 0 1-2 2"/></svg>
+    Followers
+  </button>
+  <button class="hdr-btn primary" onclick="openAudit()">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M8 5v3.5L10.5 11"/></svg>
+    Run audit
+  </button>
+</header>
+
+<div class="stats-bar" id="stats-bar"></div>
+
+<div class="controls">
+  <div class="search-wrap">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L13 13"/></svg>
+    <input id="search" placeholder="Search features, accounts, categories..." oninput="render()">
+  </div>
+  <div class="filters" id="filters"></div>
+</div>
+
+<main class="main" id="table"></main>
+
+<!-- FOLLOW MODAL -->
+<div class="overlay" id="follow-modal" onclick="if(event.target===this)closeFollowModal()">
+  <div class="modal">
+    <div class="modal-title">Follow this feature</div>
+    <div class="modal-sub">You'll get a Slack DM when this feature has a significant update during the weekly audit.</div>
+    <div class="modal-feat-tag" id="modal-feat-name"></div>
+    <div class="mrow">
+      <label class="mlabel">Your name</label>
+      <input class="minput" id="follower-name" placeholder="e.g. Ronnie Peters">
+    </div>
+    <div class="mrow">
+      <label class="mlabel">Your Slack user ID</label>
+      <input class="minput" id="follower-slack-id" placeholder="e.g. U01JXDY44F6">
+      <span class="mhint">Find it in Slack: click your profile → ··· menu → Copy member ID. Stored locally in this browser.</span>
+    </div>
+    <div class="mactions">
+      <button class="mbtn confirm" onclick="confirmFollow()">Follow feature</button>
+      <button class="mbtn cancel" onclick="closeFollowModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- FOLLOWERS VIEW -->
+<div class="overlay" id="followers-modal" onclick="if(event.target===this)closeFollowersModal()">
+  <div class="modal wide">
+    <div class="modal-hdr">
+      <span class="modal-title">Feature followers</span>
+      <button class="xbtn" onclick="closeFollowersModal()">×</button>
+    </div>
+    <p class="modal-sub">These team members will receive targeted Slack DMs during the audit when features they follow have significant updates.</p>
+    <div id="followers-list"></div>
+  </div>
+</div>
+
+<!-- AUDIT PANEL -->
+<div class="audit-overlay" id="audit-overlay" onclick="if(event.target===this)closeAudit()">
+  <div class="audit-panel">
+    <div class="panel-hdr">
+      <span class="panel-title">Weekly PxT audit</span>
+      <button class="xbtn" onclick="closeAudit()">×</button>
+    </div>
+    <p style="font-size:12px;color:var(--muted);line-height:1.6">Claude scans Slack for PxT updates from the past 7 days, sends you a digest DM, and sends targeted DMs to team members following features that had significant activity.</p>
+    <div class="crow">
+      <label class="clabel">Slack bot token</label>
+      <input class="cinput" id="slack-token" type="password" placeholder="xoxb-..." oninput="saveConfig()">
+      <span class="chint">Paste once, saved forever. Needs <code style="font-size:10px;background:var(--surface);padding:1px 4px;border-radius:3px">search:read</code> + <code style="font-size:10px;background:var(--surface);padding:1px 4px;border-radius:3px">chat:write</code> scopes.</span>
+    </div>
+    <div class="fsummary" id="followers-summary">Loading...</div>
+    <button class="run-btn" id="run-btn" onclick="runAudit()">Run audit now</button>
+    <div class="log" id="audit-log">Waiting to run...</div>
+  </div>
+</div>
+
+<script>
+const DATA=[
+  {s:"Core ticketing",n:"Online ticketing (primary)",st:"Launched",note:"Live for Mousetrap (West End) and Grease (Secret Cinema). First full primary deployments.",start:"Oct 2025",target:"Apr 1 2026",accounts:"Mousetrap, Grease (SC)"},
+  {s:"Core ticketing",n:"Seat selection & seating chart",st:"Launched",note:"Seat status chart fully live; partners can see purchased vs available seats.",start:"Nov 2025",target:"Apr 7 2026",accounts:"Mousetrap, Grease"},
+  {s:"Core ticketing",n:"Filter tags on seating chart",st:"Launched",note:"Partners can filter by tag to see availability under a specific category.",start:"Mar 2026",target:"Apr 7 2026",accounts:"Mousetrap, Grease"},
+  {s:"Core ticketing",n:"Repricing (reserved seating)",st:"Launched",note:"Seat/row reprice released with TTG rules bug fix.",start:"Feb 2026",target:"Apr 7 2026",accounts:"Mousetrap, Grease"},
+  {s:"Core ticketing",n:"Repricing (GA)",st:"Launched",note:"Reprice on general admission released Apr 7 2026.",start:"Mar 2026",target:"Apr 7 2026",accounts:"Electric Summer"},
+  {s:"Core ticketing",n:"Performance time on ticket",st:"Launched",note:"Added to ticket display.",start:"Mar 2026",target:"Apr 7 2026",accounts:"All primary"},
+  {s:"Core ticketing",n:"Ticket delivery (in-app)",st:"Launched",note:"Customers receive barcodes via TodayTix app.",start:"Sep 2025",target:"Jan 2026",accounts:"All primary"},
+  {s:"Core ticketing",n:"Offline ticket access (iOS)",st:"Launched",note:"Fixed: tickets accessible with no/poor network on iOS.",start:"Jan 2026",target:"Feb 2026",accounts:"All"},
+  {s:"Core ticketing",n:"Ticket transfer",st:"Launched",note:"Partners and customers can transfer tickets via the TodayTix app.",start:"Oct 2025",target:"Feb 2026",accounts:"All"},
+  {s:"Core ticketing",n:"In-app scanning / box office",st:"Launched",note:"Deployed at Touch (NYC), Offies (UK), Mousetrap, Grease. Scan guide reusable.",start:"Jan 2026",target:"Apr 1 2026",accounts:"Touch, Offies, Mousetrap, Grease"},
+  {s:"Core ticketing",n:"Pay by link",st:"Launched",note:"Enables team to manage house seat bookings.",start:"Feb 2026",target:"Mar 10 2026",accounts:"Touch"},
+  {s:"Core ticketing",n:"House seats / comp tickets",st:"Launched",note:"Workflow established via form; portal UI in progress.",start:"Jan 2026",target:"Mar 2026",accounts:"All primary"},
+  {s:"Core ticketing",n:"Rush tickets",st:"Launched",note:"Bulk rush flow tested and live. Manual reassignment supported.",start:"Jan 2026",target:"Mar 2026",accounts:"Touch, Mousetrap"},
+  {s:"Core ticketing",n:"Lottery",st:"Launched",note:"Full flow (entry → winner → barcode → comms) live.",start:"Jan 2026",target:"Mar 2026",accounts:"Touch"},
+  {s:"Core ticketing",n:"Access / companion tickets",st:"In progress",note:"Workflow exists but causes CX confusion; separate form for already-booked customers under review.",start:"Feb 2026",target:"Q2 2026",accounts:"Grease"},
+  {s:"Core ticketing",n:"Edit reservation seats",st:"In progress",note:"GitHub issue in next milestone.",start:"Mar 2026",target:"Q2 2026",accounts:"All primary"},
+  {s:"Core ticketing",n:"Offer multiple offers simultaneously",st:"In progress",note:"GitHub issue ready for dev.",start:"Mar 2026",target:"Q2 2026",accounts:"Electric Summer, Mousetrap"},
+  {s:"Core ticketing",n:"CX actions in portal",st:"In progress",note:"Allows ops to take CX action directly in portal without Retool.",start:"Mar 2026",target:"Q2 2026",accounts:"All"},
+  {s:"Core ticketing",n:"Offer setup improvement (multi-rate API)",st:"In progress",note:"Ready for dev as of Apr 7 2026.",start:"Mar 2026",target:"Q2 2026",accounts:"All"},
+  {s:"Core ticketing",n:"Custom payment methods",st:"In progress",note:"Required by Club Fugazi (SF); in roadmap discussion.",start:"Feb 2026",target:"Q3 2026",accounts:"Club Fugazi"},
+  {s:"Core ticketing",n:"Promo codes",st:"In progress",note:"Q2 roadmap; needed for Club Fugazi summer launch. Design in review.",start:"Feb 2026",target:"Q2 2026",accounts:"Club Fugazi, The Moth"},
+  {s:"Core ticketing",n:"Timed entry",st:"In progress",note:"Designs in progress for Electric Summer. Required for immersive venues.",start:"Mar 2026",target:"Jun 2026",accounts:"Electric Summer, Windsor"},
+  {s:"Core ticketing",n:"Add-ons",st:"In progress",note:"Enhanced designs for Electric Summer including upsell module in basket.",start:"Mar 2026",target:"Jun 1 2026",accounts:"Electric Summer"},
+  {s:"Core ticketing",n:"Bundles",st:"In progress",note:"Designed for Electric Summer. Target Jul 1–15; Windsor Illuminated real deadline end July.",start:"Mar 2026",target:"Jul 2026",accounts:"Electric Summer, Windsor"},
+  {s:"Core ticketing",n:"Financial ledger / primary ticketing fee",st:"In progress",note:"Per-ticket fee currently manual for Mousetrap & Grease. Infrastructure in scoping.",start:"Mar 2026",target:"Q3 2026",accounts:"Mousetrap, Grease"},
+  {s:"Core ticketing",n:"SMS ticket delivery (fallback)",st:"In progress",note:"SMS ~4hrs pre-show if tickets not yet on device.",start:"Mar 2026",target:"Q2 2026",accounts:"All primary"},
+  {s:"Core ticketing",n:"Android PxT app",st:"Not yet",note:"Raised by Club Fugazi. No committed timeline.",start:"TBD",target:"TBD",accounts:"Club Fugazi"},
+  {s:"Partner portal",n:"Partner portal (beta)",st:"Launched",note:"beta.poweredbytodaytix.com live. Partners log in, view shows, manage house seats.",start:"Sep 2025",target:"Mar 2026",accounts:"All primary"},
+  {s:"Partner portal",n:"Portal scanning (box office)",st:"Launched",note:"Deployed for Touch, Offies, Mousetrap, Grease.",start:"Jan 2026",target:"Apr 1 2026",accounts:"Touch, Offies, Mousetrap, Grease"},
+  {s:"Partner portal",n:"Sales & conversion dashboards (v1)",st:"Launched",note:"Included in portal v1 with prioritized roadmap for future features.",start:"Jun 2025",target:"Sep 2025",accounts:"All primary"},
+  {s:"Partner portal",n:"CX action in portal",st:"In progress",note:"Ready for dev. Allows ops/CX to take action directly in portal.",start:"Mar 2026",target:"Q2 2026",accounts:"All"},
+  {s:"Partner portal",n:"Financial reporting / revenue attribution",st:"In progress",note:"Primary ticketing fee revenue not yet in internal PxT reports.",start:"Mar 2026",target:"Q3 2026",accounts:"Mousetrap, Grease"},
+  {s:"CRM & customer experience",n:"Order confirmation email (PxT-branded)",st:"Launched",note:"New template live Mar 2026. Prominent 'View Ticket' CTA.",start:"Jan 2026",target:"Mar 13 2026",accounts:"All primary"},
+  {s:"CRM & customer experience",n:"Know Before You Go email",st:"Launched",note:"Template live Mar 2026.",start:"Jan 2026",target:"Mar 13 2026",accounts:"All primary"},
+  {s:"CRM & customer experience",n:"Pre-sale data collection",st:"In progress",note:"Key pitch-winning feature alongside subscriptions and donations.",start:"Feb 2025",target:"Q3 2026",accounts:"NorAm institutions"},
+  {s:"Access programs",n:"Rush (primary)",st:"Launched",note:"Access programs synced for primary clients. Automation being explored.",start:"Jan 2026",target:"Mar 2026",accounts:"Mousetrap, Touch"},
+  {s:"Access programs",n:"Special offers retailer (UK)",st:"Launched",note:"Reusable generic UK PxT Special Offer retailer built at The Offies.",start:"Mar 2026",target:"Apr 9 2026",accounts:"Offies, Grease"},
+  {s:"Access programs",n:"Access retailer (UK)",st:"Launched",note:"Reusable generic UK PxT Access retailer built at The Offies.",start:"Mar 2026",target:"Apr 9 2026",accounts:"Offies, Grease"},
+  {s:"Commercial & financial",n:"Per-ticket primary fee (invoiced)",st:"Launched",note:"Manual invoicing in place while system is built.",start:"Mar 2026",target:"Mar 25 2026",accounts:"Mousetrap, Grease"},
+  {s:"Commercial & financial",n:"Flexible commission / fee infrastructure",st:"In progress",note:"Full financial ledger overhaul being scoped.",start:"Mar 2026",target:"Q3 2026",accounts:"All"},
+  {s:"Commercial & financial",n:"Donations",st:"In progress",note:"Strong demand from NorAm institutions. No committed timeline.",start:"Feb 2025",target:"TBD",accounts:"WNT, NorAm"},
+  {s:"Commercial & financial",n:"Subscriptions / memberships",st:"Not yet",note:"Phase 2–3 for NorAm institutions via Tessitura. High pitch-winning importance.",start:"TBD",target:"TBD",accounts:"NorAm institutions"},
+  {s:"Distribution & integrations",n:"Spektrix integration",st:"Launched",note:"Live (e.g. Grease originally on Spektrix, migrated to TT Primary).",start:"Sep 2025",target:"Jan 2026",accounts:"Grease, WNT"},
+  {s:"Distribution & integrations",n:"Tixly integration",st:"Launched",note:"Live (e.g. Moth Days on Tixly).",start:"Sep 2025",target:"Jan 2026",accounts:"The Moth"},
+  {s:"Distribution & integrations",n:"Criterion integration",st:"In progress",note:"Referenced for A Walk on the Moon.",start:"Jan 2026",target:"Q2 2026",accounts:"A Walk on the Moon"},
+  {s:"Distribution & integrations",n:"Tessitura integration (subscriptions)",st:"In progress",note:"Required for Phase 2 NorAm institutional strategy.",start:"Mar 2025",target:"TBD",accounts:"NorAm institutions"},
+  {s:"Distribution & integrations",n:"Viator / GetYourGuide / Airbnb APIs",st:"Under review",note:"Raised by Club Fugazi. Being explored given MARI partnership.",start:"TBD",target:"TBD",accounts:"Club Fugazi, MARI"},
+  {s:"Distribution & integrations",n:"Welsh language support",st:"Under review",note:"Raised as WNT-specific requirement.",start:"TBD",target:"TBD",accounts:"WNT"},
+  {s:"Platform & infrastructure",n:"PxT delivery framework (TTG repo)",st:"Launched",note:"Six live views: Client Calendar, Launch Checklist, Feature–Client Matrix, Team Sequencing, Dependency Map, Distribution Integrator Map.",start:"Feb 2026",target:"Mar 27 2026",accounts:"Internal"},
+  {s:"Platform & infrastructure",n:"PxT Hub (Google Sites)",st:"Launched",note:"Central hub for contracts, operations, post-mortems.",start:"Mar 2026",target:"Mar 26 2026",accounts:"Internal"},
+  {s:"Platform & infrastructure",n:"Contracts hub",st:"Launched",note:"US Order Form, UK Order Form, Agent Agreement all live.",start:"Mar 2026",target:"Mar 26 2026",accounts:"Internal / Sales"},
+  {s:"Platform & infrastructure",n:"View from seat designs",st:"In progress",note:"Dusted off as part of PxT × Checkout squad collab.",start:"Mar 2025",target:"Q2 2026",accounts:"All"},
+  {s:"Platform & infrastructure",n:"Sold out show messaging",st:"In progress",note:"Being revamped.",start:"Mar 2025",target:"Q2 2026",accounts:"All"},
+  {s:"Platform & infrastructure",n:"iOS live activities (scanner persistence)",st:"In progress",note:"Persistent lock screen notification after first scan to reduce re-open friction.",start:"Mar 2026",target:"Jun 2026",accounts:"Electric Summer"},
+  {s:"Platform & infrastructure",n:"Dependency map",st:"In progress",note:"Work in progress in TTG repo delivery framework.",start:"Mar 2026",target:"Q2 2026",accounts:"Internal"},
+  {s:"Platform & infrastructure",n:"Distribution integrator map",st:"Under review",note:"Under consideration in TTG repo delivery framework.",start:"TBD",target:"TBD",accounts:"Internal"},
+  {s:"Platform & infrastructure",n:"PM per client/vertical ownership model",st:"In progress",note:"Jess Clayton (Secret Cinema), Stella (A&E), Ian (Theatre), Joe (Data), Sarah M. (new customer experience).",start:"Apr 2026",target:"Ongoing",accounts:"Internal"},
+];
+
+const SM={
+  "Launched":    {cls:"b-launched",dot:"d-launched"},
+  "In progress": {cls:"b-progress",dot:"d-progress"},
+  "Under review":{cls:"b-review",  dot:"d-review"},
+  "On hold":     {cls:"b-hold",    dot:"d-hold"},
+  "Not yet":     {cls:"b-notyet", dot:"d-notyet"},
+};
+const FILTERS=["All","Launched","In progress","Under review","Not yet"];
+let activeFilter="All";
+let followers={};
+let pendingFeature=null;
+
+function loadFollowers(){try{followers=JSON.parse(localStorage.getItem('pxt_followers')||'{}');}catch(e){followers={};}}
+function saveFollowers(){localStorage.setItem('pxt_followers',JSON.stringify(followers));}
+
+function buildStats(){
+  const c={};DATA.forEach(d=>c[d.st]=(c[d.st]||0)+1);
+  document.getElementById('stats-bar').innerHTML=[
+    {k:"Launched",cls:"green",l:"Launched"},
+    {k:"In progress",cls:"amber",l:"In progress"},
+    {k:"Under review",cls:"blue",l:"Under review"},
+    {k:"Not yet",cls:"red",l:"Not yet"},
+  ].map(s=>`<div class="stat-cell"><div class="stat-n ${s.cls}">${c[s.k]||0}</div><div class="stat-label">${s.l}</div></div>`).join('');
+}
+
+function buildFilters(){
+  document.getElementById('filters').innerHTML=FILTERS.map(f=>`<button class="pill${f===activeFilter?' active':''}" data-f="${f}" onclick="setFilter(this)">${f}</button>`).join('');
+}
+
+function setFilter(el){
+  activeFilter=el.dataset.f;
+  document.querySelectorAll('.pill').forEach(p=>p.classList.toggle('active',p.dataset.f===activeFilter));
+  render();
+}
+
+function esc(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
+
+function render(){
+  const q=document.getElementById('search').value.toLowerCase();
+  const filtered=DATA.filter(d=>{
+    const mF=activeFilter==="All"||d.st===activeFilter;
+    const mQ=!q||d.n.toLowerCase().includes(q)||d.note.toLowerCase().includes(q)||d.s.toLowerCase().includes(q)||(d.accounts||'').toLowerCase().includes(q);
+    return mF&&mQ;
+  });
+  const sections=[...new Set(filtered.map(d=>d.s))];
+  const el=document.getElementById('table');
+  if(!filtered.length){el.innerHTML='<div class="empty">No features match.</div>';return;}
+  el.innerHTML=sections.map(sec=>{
+    const rows=filtered.filter(d=>d.s===sec);
+    return `<div>
+      <div class="section-head">${sec}<span class="cnt">${rows.length}</span></div>
+      <div class="col-heads">
+        <div class="col-head">Feature &amp; notes</div>
+        <div class="col-head">Status</div>
+        <div class="col-head">Accounts</div>
+        <div class="col-head">Started</div>
+        <div class="col-head">Target</div>
+        <div class="col-head">Follow</div>
+      </div>
+      ${rows.map(d=>{
+        const m=SM[d.st]||{cls:'b-review',dot:'d-review'};
+        const fList=followers[d.n]||[];
+        return `<div class="row">
+          <div>
+            <div class="feat-name">${d.n}</div>
+            <div class="feat-note">${d.note}</div>
+          </div>
+          <div><span class="badge ${m.cls}"><span class="dot ${m.dot}"></span>${d.st}</span></div>
+          <div class="feat-acct">${d.accounts||'—'}</div>
+          <div class="dates-cell">
+            <div class="date-pair"><div class="date-val">${d.start||'—'}</div></div>
+          </div>
+          <div class="dates-cell">
+            <div class="date-pair"><div class="date-val">${d.target||'—'}</div></div>
+          </div>
+          <div class="follow-col">
+            <button class="follow-btn" title="Follow this feature" onclick="openFollowModal('${esc(d.n)}')">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1a5.5 5.5 0 0 1 5.5 5.5C13.5 10 8 15 8 15S2.5 10 2.5 6.5A5.5 5.5 0 0 1 8 1z"/><circle cx="8" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
+            </button>
+            ${fList.length?`<span class="follow-count">${fList.length}</span>`:''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+
+/* FOLLOW MODAL */
+function openFollowModal(name){
+  pendingFeature=name;
+  document.getElementById('modal-feat-name').textContent=name;
+  document.getElementById('follower-name').value='';
+  document.getElementById('follower-slack-id').value='';
+  document.getElementById('follow-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('follower-name').focus(),60);
+}
+function closeFollowModal(){document.getElementById('follow-modal').classList.remove('open');pendingFeature=null;}
+function confirmFollow(){
+  const name=document.getElementById('follower-name').value.trim();
+  const slackId=document.getElementById('follower-slack-id').value.trim().replace(/^@/,'');
+  if(!name||!slackId){alert('Please enter your name and Slack user ID.');return;}
+  if(!slackId.match(/^U[A-Z0-9]+$/i)){alert('Slack user IDs start with U followed by letters/numbers (e.g. U01JXDY44F6).');return;}
+  if(!followers[pendingFeature])followers[pendingFeature]=[];
+  if(!followers[pendingFeature].find(f=>f.slackId===slackId)){
+    followers[pendingFeature].push({name,slackId});
+    saveFollowers();
+  }
+  closeFollowModal();
+  render();
+  updateFSummary();
+}
+
+/* FOLLOWERS VIEW */
+function showFollowers(){
+  const list=document.getElementById('followers-list');
+  const all=Object.entries(followers).filter(([,fs])=>fs.length>0);
+  if(!all.length){
+    list.innerHTML='<p style="font-size:12px;color:var(--muted);padding:14px 0">No followers yet. Team members can click the pin icon next to any feature to subscribe to updates.</p>';
+  } else {
+    list.innerHTML=all.map(([feat,fs])=>`
+      <div style="border-bottom:1px solid var(--border);padding:14px 0">
+        <div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:6px">${feat}</div>
+        ${fs.map(f=>`<div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px;margin-top:4px">
+          <span style="color:var(--text)">${f.name}</span>
+          <span style="color:var(--dim)">·</span>
+          <span>${f.slackId||'—'}</span>
+          <button onclick="removeFollower('${esc(feat)}','${esc(f.slackId)}')" style="margin-left:auto;background:none;border:none;color:var(--red);cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;opacity:.7">remove</button>
+        </div>`).join('')}
+      </div>`).join('');
+  }
+  document.getElementById('followers-modal').classList.add('open');
+}
+function closeFollowersModal(){document.getElementById('followers-modal').classList.remove('open');}
+function removeFollower(feat,slackId){
+  if(!followers[feat])return;
+  followers[feat]=followers[feat].filter(f=>f.slackId!==slackId);
+  saveFollowers();showFollowers();render();
+}
+
+/* CONFIG */
+function saveConfig(){
+  const t=document.getElementById('slack-token').value;
+  if(t)localStorage.setItem('pxt_slack_token',t);
+}
+function loadConfig(){
+  const t=localStorage.getItem('pxt_slack_token')||'';
+  if(t)document.getElementById('slack-token').value=t;
+}
+
+function updateFSummary(){
+  const all=Object.entries(followers).filter(([,fs])=>fs.length>0);
+  const people=new Set(Object.values(followers).flat().map(f=>f.slackId)).size;
+  const el=document.getElementById('followers-summary');if(!el)return;
+  if(!all.length){el.innerHTML='No followers yet. Team members click the pin icon on any feature to subscribe to targeted Slack DM updates.';}
+  else{el.innerHTML=`<strong>${people} team member${people!==1?'s':''}</strong> following <strong>${all.length} feature${all.length!==1?'s':''}</strong>. During the audit Claude sends them a targeted Slack DM only for features they follow that had significant updates.`;}
+}
+
+/* AUDIT */
+function openAudit(){document.getElementById('audit-overlay').classList.add('open');loadConfig();updateFSummary();}
+function closeAudit(){document.getElementById('audit-overlay').classList.remove('open');}
+
+function log(msg,type=''){
+  const el=document.getElementById('audit-log');
+  el.innerHTML+=`<span${type?' class="'+type+'"':''}>${msg}</span>\n`;
+  el.scrollTop=el.scrollHeight;
+}
+
+async function sendSlackDM(slackToken,userId,text){
+  const r=await fetch('https://slack.com/api/chat.postMessage',{
+    method:'POST',
+    headers:{'Authorization':`Bearer ${slackToken}`,'Content-Type':'application/json'},
+    body:JSON.stringify({channel:userId,text})
+  });
+  const d=await r.json();
+  if(!d.ok)throw new Error(`Slack error: ${d.error}`);
+  return d;
+}
+
+async function claudeCall(prompt,maxTokens=1000){
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})
+  });
+  const d=await r.json();
+  if(!r.ok||d.error)throw new Error(d.error?.message||'Claude API error');
+  return d.content?.[0]?.text||'';
+}
+
+const MY_SLACK_ID='U0872H8FS9W';
+
+async function runAudit(){
+  const slackToken=document.getElementById('slack-token').value.trim();
+  if(!slackToken){alert('Please paste your Slack bot token.');return;}
+  saveConfig();
+  document.getElementById('audit-log').innerHTML='';
+  document.getElementById('run-btn').disabled=true;
+  log('Starting PxT weekly audit...','info');log('');
+
+  try{
+    // Step 1: Search Slack
+    log('① Searching Slack for PxT updates (last 7 days)...','info');
+    let slackCtx='';
+    const ago=Math.floor((Date.now()-7*24*60*60*1000)/1000);
+    try{
+      const sr=await fetch('https://slack.com/api/search.messages?query=PxT+product+feature+shipped+released+launched+progress&count=20&sort=timestamp&sort_dir=desc',{
+        headers:{'Authorization':`Bearer ${slackToken}`}
+      });
+      const sd=await sr.json();
+      if(sd.ok&&sd.messages?.matches?.length){
+        const recent=sd.messages.matches.filter(m=>parseInt(m.ts)>ago);
+        slackCtx=recent.map(m=>`[${m.channel?.name||'?'}] ${(m.text||'').slice(0,300)}`).join('\n\n');
+        log(`   Found ${recent.length} relevant messages.`);
+      } else {
+        log('   No recent messages found — running from tracker data only.');
+      }
+    }catch(e){log('   Could not reach Slack API — running from tracker data only.','err');}
+
+    const snapshot=DATA.map(d=>`[${d.st}] ${d.s} / ${d.n} | Accounts: ${d.accounts} | Start: ${d.start} | Target: ${d.target} | ${d.note}`).join('\n');
+    const dateStr=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+    // Step 2: Generate digest
+    log('');log('② Generating your weekly digest...','info');
+    const digest=await claudeCall(`You are a product tracker for PxT (Powered by TodayTix).
+
+Tracker state:
+${snapshot}
+
+${slackCtx?`Recent Slack (7 days):\n${slackCtx}`:''}
+
+Write a concise weekly digest. Format:
+- 1-sentence summary of the week
+- 🟢 Newly launched — moved to Launched this week
+- 🟡 Significant updates — notable progress or context changes
+- ⚠️ Watch list — delayed, blocked, or needs attention
+- 📌 Coming up — expected to ship soon
+- One-liner on overall momentum
+
+Specific. Cite feature names and accounts. Plain text with emojis. Tight and personal — this is a Slack DM, not a report.`);
+    log('   Digest generated.','ok');
+
+    // Step 3: DM yourself
+    log('');log('③ Sending you a Slack DM...','info');
+    await sendSlackDM(slackToken,MY_SLACK_ID,`*PxT weekly product digest — ${dateStr}*\n\n${digest}`);
+    log('   DM sent to you ✓','ok');
+
+    // Step 4: Follower targeted DMs
+    const followed=Object.entries(followers).filter(([,fs])=>fs.length>0);
+    if(followed.length){
+      log('');log(`④ Checking ${followed.length} followed feature(s) for significant updates...`,'info');
+      for(const [featName,fList] of followed){
+        const fd=DATA.find(d=>d.n===featName);
+        if(!fd)continue;
+
+        const update=await claudeCall(`PxT product tracker assistant.
+
+Feature: "${featName}"
+Status: ${fd.st} | Accounts: ${fd.accounts} | Start: ${fd.start} | Target: ${fd.target}
+Notes: ${fd.note}
+
+${slackCtx?`Recent Slack (7 days):\n${slackCtx}`:''}
+
+Did "${featName}" have a SIGNIFICANT update this week (status change, major milestone, launch, blocker, delay)?
+If YES: write a short 2–4 sentence Slack DM update that a follower would want to read. Be specific and factual. Plain text with emojis, no formatting.
+If NO significant update: respond with exactly the word SKIP and nothing else.`,400);
+
+        if(update.trim()==='SKIP'){
+          log(`   "${featName}" — no significant update, skipping.`);
+          continue;
+        }
+        log(`   "${featName}" — update found! DMing ${fList.length} follower(s)...`,'ok');
+        for(const f of fList){
+          if(!f.slackId||!f.slackId.match(/^U/i)){
+            log(`     → ${f.name}: no valid Slack ID, skipping.`,'err');
+            continue;
+          }
+          try{
+            await sendSlackDM(slackToken,f.slackId,
+              `*PxT feature update: ${featName}*\n\nHi ${f.name} — you're following this feature on the PxT tracker.\n\n${update}`
+            );
+            log(`     → ${f.name} (${f.slackId}) ✓`,'ok');
+          }catch(e){log(`     → ${f.name} failed: ${e.message}`,'err');}
+        }
+      }
+    } else {
+      log('');log('④ No followers to notify.','info');
+    }
+
+    log('');log('────────────────────────────────────');
+    log('Your digest:','info');log('');log(digest);log('');log('✓ Audit complete.','ok');
+  }catch(err){log('');log(`✗ Error: ${err.message}`,'err');}
+  document.getElementById('run-btn').disabled=false;
+}
+
+// Init
+loadFollowers();buildStats();buildFilters();render();
+</script>
+</body>
+</html>
